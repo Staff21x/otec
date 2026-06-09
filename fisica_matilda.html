@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1100">
+<title>⚡ FísicaAventura — Para Matilda 🌟</title>
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#3782F5;--lblue:#64C3FF;--green:#2ED57A;--dgreen:#1a9050;
+  --red:#E84141;--dred:#a02020;--yellow:#FFD700;--gold:#FFB900;
+  --purple:#9B59E8;--pink:#FF6499;--orange:#FF9137;--cyan:#00D7D7;
+  --teal:#00B9AF;--gray:#5A6482;--lgray:#A0AFCD;
+  --bg:#080A1C;--card:#12163a;--card2:#1c2250;
+}
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);color:#fff;
+  min-height:100vh;overflow-x:hidden;
+}
+canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#pCanvas{z-index:100}
+#bgCanvas{z-index:0}
+#app{position:relative;z-index:10;min-height:100vh}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+
+/* ── MENU ── */
+.menu-title{
+  text-align:center;padding:28px 0 6px;
+  font-size:54px;font-weight:bold;color:var(--yellow);
+  text-shadow:0 0 30px rgba(255,215,0,.45),2px 2px 0 #000;
+  animation:float 3s ease-in-out infinite
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.menu-sub{text-align:center;font-size:20px;color:var(--lgray);margin-bottom:6px}
+.menu-hint{text-align:center;font-size:15px;color:var(--gray);margin-bottom:18px}
+.topic-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+  max-width:1060px;margin:0 auto;padding:0 20px 16px
+}
+.topic-card{
+  background:var(--card);border:3px solid var(--tc,#3782F5);
+  border-radius:22px;padding:24px;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+  display:flex;align-items:center;gap:18px;
+  position:relative;overflow:hidden
+}
+.topic-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.05) 0%,transparent 60%);
+  pointer-events:none
+}
+.topic-card:hover{
+  transform:translateY(-5px) scale(1.02);
+  box-shadow:0 14px 40px rgba(0,0,0,.5),0 0 0 1px var(--tc,#3782F5)
+}
+.topic-icon{font-size:50px;flex-shrink:0}
+.topic-info h2{font-size:22px;margin-bottom:4px}
+.topic-info p{font-size:13px;color:var(--lgray);margin-bottom:10px}
+.star-row{font-size:20px;letter-spacing:2px}
+.play-btn{
+  margin-left:auto;background:var(--tc,#3782F5);color:#fff;
+  border:none;border-radius:11px;padding:10px 18px;
+  font-size:15px;font-weight:bold;cursor:pointer;flex-shrink:0;
+  white-space:nowrap
+}
+.total-bar{
+  text-align:center;font-size:21px;color:var(--yellow);
+  padding:10px 0 18px;font-weight:bold
+}
+
+/* ── LEARN ── */
+.learn-head{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 24px 10px;max-width:1060px;margin:0 auto;width:100%
+}
+.back-btn{
+  background:var(--card2);border:none;color:var(--lgray);
+  padding:8px 16px;border-radius:10px;cursor:pointer;
+  font-size:15px;transition:background .15s;white-space:nowrap
+}
+.back-btn:hover{background:#2a3060}
+.learn-title{font-size:24px;font-weight:bold;flex:1;text-align:center}
+.slide-dots{display:flex;justify-content:center;gap:10px;padding-bottom:8px}
+.dot{width:13px;height:13px;border-radius:50%;background:var(--gray);transition:background .3s}
+.dot.on{background:var(--tc,#3782F5)}
+.slide-body{
+  display:grid;grid-template-columns:1fr 1fr;gap:18px;
+  max-width:1060px;margin:0 auto;padding:0 20px;flex:1
+}
+.theory-card{
+  background:var(--card);border:2px solid var(--tc,#3782F5);
+  border-radius:18px;padding:22px
+}
+.theory-card h3{color:var(--tc,#3782F5);font-size:17px;margin-bottom:14px;font-weight:bold}
+.tline{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:16px;line-height:1.45}
+.tbullet{font-size:18px;flex-shrink:0;margin-top:1px}
+.tip{background:var(--card2);border-radius:12px;padding:14px;margin-top:14px;font-size:14px;color:var(--lgray);line-height:1.5}
+.tip strong{color:var(--yellow)}
+.anim-card{
+  background:var(--card);border:2px solid var(--card2);
+  border-radius:18px;padding:20px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center
+}
+.anim-label{font-size:13px;color:var(--gray);margin-bottom:10px}
+
+/* Newton animations */
+.track-wrap{width:100%;position:relative;margin:20px 0}
+.track{height:4px;background:var(--gray);border-radius:2px;position:relative;overflow:visible}
+.slider{
+  position:absolute;width:68px;height:48px;
+  background:var(--blue);border-radius:8px;top:-22px;left:-70px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:bold;
+  animation:slide 3.5s linear infinite;
+  box-shadow:0 4px 14px rgba(55,130,245,.5)
+}
+@keyframes slide{0%{left:-80px}100%{left:calc(100% + 10px)}}
+.vel-arrow{color:var(--green);font-size:22px;margin-top:8px;animation:pa 1s ease-in-out infinite}
+@keyframes pa{0%,100%{opacity:.4}50%{opacity:1}}
+.fma-wrap{width:100%;display:flex;flex-direction:column;gap:12px}
+.fma-row{
+  background:var(--card2);border-radius:10px;
+  padding:12px 14px;display:flex;align-items:center;gap:10px
+}
+.fma-blk{
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:bold;flex-shrink:0
+}
+.fma-ar{flex:1;height:5px;border-radius:2px;position:relative}
+.fma-ar::after{
+  content:'▶';position:absolute;right:-12px;top:50%;
+  transform:translateY(-50%);font-size:12px
+}
+.fma-res{font-size:12px;font-weight:bold;margin-left:auto;white-space:nowrap}
+.rocket-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px}
+.rocket{font-size:70px;animation:rfly 2s ease-in-out infinite;filter:drop-shadow(0 0 18px rgba(255,145,55,.6))}
+@keyframes rfly{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+.act{font-size:14px;color:var(--red);font-weight:bold}
+.reac{font-size:14px;color:var(--green);font-weight:bold}
+.arrows{font-size:24px;display:flex;flex-direction:column;align-items:center;gap:2px}
+
+/* Masa planet scene */
+.planet-row{display:flex;gap:14px;justify-content:center;width:100%}
+.pcard{
+  background:var(--card2);border-radius:14px;padding:16px;
+  text-align:center;flex:1
+}
+.pcard .icon{font-size:48px}
+.pcard .pname{font-size:16px;font-weight:bold;margin:6px 0 2px}
+.pcard .pg{font-size:12px;color:var(--lgray);margin-bottom:10px}
+.pcard .pmass{font-size:14px;color:var(--green);font-weight:bold}
+.pcard .pweight{font-size:18px;font-weight:bold;margin-top:4px}
+
+/* Vector learn */
+.vec-ex{background:var(--card2);border-radius:14px;padding:18px;width:100%}
+.vec-ex h4{font-size:15px;color:var(--tc,#9B59E8);margin-bottom:12px;font-weight:bold}
+.vec-demo{display:flex;align-items:center;gap:0;margin:10px 0 4px;position:relative;height:56px}
+.vblk{width:52px;height:44px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;z-index:2;flex-shrink:0}
+.varr{height:8px;border-radius:4px;position:relative;display:flex;align-items:center}
+.varr .vlbl{position:absolute;top:-24px;font-size:14px;font-weight:bold;white-space:nowrap}
+.varr.r .vlbl{right:0}
+.varr.l .vlbl{left:0}
+.varr.r::after{content:'';position:absolute;right:-16px;border:10px solid transparent}
+.varr.l::after{content:'';position:absolute;left:-16px;border:10px solid transparent}
+.vres{font-size:15px;font-weight:bold;margin-top:8px;padding-top:8px;border-top:1px dashed var(--gray)}
+
+/* Cinemática concepts */
+.cingrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.cincard{background:var(--card2);border-radius:12px;padding:14px;display:flex;gap:10px;align-items:flex-start}
+.cinicon{font-size:32px;flex-shrink:0}
+.cininfo h4{font-size:14px;font-weight:bold;margin-bottom:3px}
+.cininfo p{font-size:12px;color:var(--lgray);line-height:1.4}
+.cinform{font-size:14px;font-weight:bold;color:var(--yellow);margin-top:4px}
+
+/* ── LEARN NAV ── */
+.learn-nav{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 24px 16px;max-width:1060px;margin:0 auto;width:100%
+}
+.lbtn{
+  padding:11px 26px;border-radius:12px;border:none;
+  font-size:15px;font-weight:bold;cursor:pointer;
+  transition:transform .1s,opacity .2s
+}
+.lbtn:hover{transform:scale(1.05)}
+.lbtn.go{background:var(--green);color:#000}
+.lbtn.quiz{background:var(--yellow);color:#000}
+.lbtn.prev{background:var(--card2);color:var(--lgray)}
+.lbtn.inv{visibility:hidden}
+
+/* ── QUIZ ── */
+.quiz-top{
+  padding:14px 24px 0;max-width:1060px;margin:0 auto;width:100%;
+  display:flex;flex-direction:column;gap:8px
+}
+.quiz-label{font-size:17px;font-weight:bold}
+.prog-wrap{width:100%;height:10px;background:var(--card2);border-radius:5px;overflow:hidden}
+.prog-fill{height:100%;border-radius:5px;transition:width .4s}
+.q-card{
+  max-width:1020px;margin:14px auto 10px;
+  background:var(--card);border-radius:18px;
+  padding:22px 28px;font-size:19px;color:var(--yellow);
+  font-weight:bold;line-height:1.5
+}
+.opts{
+  max-width:1020px;margin:0 auto;padding:0 20px;
+  display:flex;flex-direction:column;gap:10px
+}
+.opt{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;background:var(--card);
+  border:2px solid var(--card2);border-radius:13px;
+  cursor:pointer;font-size:16px;color:#fff;text-align:left;
+  transition:border-color .15s,background .15s,transform .1s;width:100%
+}
+.opt:hover:not(:disabled){background:var(--card2);border-color:var(--tc,#3782F5);transform:translateX(4px)}
+.opt:disabled{cursor:default}
+.opt.correct{background:#1a5030;border-color:var(--green)}
+.opt.wrong{background:#4a1010;border-color:var(--red)}
+.oletter{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--tc,#3782F5);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:bold;flex-shrink:0;font-size:15px
+}
+.expbox{
+  max-width:1020px;margin:10px auto;padding:12px 22px;
+  border-radius:13px;font-size:14px;color:#fff;display:none;line-height:1.5
+}
+.expbox.show{display:block}
+.expbox.ok{background:#1a5030;border:1px solid var(--green)}
+.expbox.bad{background:#4a1010;border:1px solid var(--red)}
+.cont-hint{
+  text-align:center;color:var(--lgray);font-size:14px;
+  padding:8px;animation:blink 1.5s ease-in-out infinite
+}
+@keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* feedback flash */
+.fb-flash{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  font-size:28px;font-weight:bold;padding:10px 28px;border-radius:14px;
+  z-index:200;animation:fbout 1.8s forwards;pointer-events:none
+}
+.fb-flash.ok{background:rgba(46,213,122,.9);color:#000}
+.fb-flash.bad{background:rgba(232,65,65,.9);color:#fff}
+@keyframes fbout{0%{opacity:1;top:20px}70%{opacity:1}100%{opacity:0;top:0}}
+
+/* ── VECTOR GAME ── */
+.vgame{max-width:1020px;margin:10px auto;padding:0 20px;flex:1}
+.vdiag{background:var(--card);border-radius:18px;padding:22px 28px;margin-bottom:14px}
+.vdiag h3{color:var(--yellow);font-size:18px;margin-bottom:14px;text-align:center}
+.vscene{
+  display:flex;align-items:center;justify-content:center;
+  position:relative;height:90px;gap:0
+}
+.vbox{
+  width:66px;height:54px;background:var(--teal);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:28px;z-index:2;flex-shrink:0
+}
+.vf{
+  height:10px;border-radius:5px;position:relative;display:flex;align-items:center
+}
+.vf .vfl{position:absolute;top:-30px;font-size:16px;font-weight:bold;white-space:nowrap}
+.vf.r .vfl{right:0}.vf.l .vfl{left:0}
+.vf.r::after{content:'';position:absolute;right:-18px;border:12px solid transparent}
+.vf.l::after{content:'';position:absolute;left:-18px;border:12px solid transparent}
+.vopts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vopt{
+  padding:16px;background:var(--card);border:2px solid var(--card2);
+  border-radius:13px;cursor:pointer;font-size:19px;font-weight:bold;
+  text-align:center;transition:all .15s;color:#fff
+}
+.vopt:hover:not(:disabled){background:var(--card2);border-color:var(--purple);transform:scale(1.02)}
+.vopt:disabled{cursor:default}
+.vopt.correct{background:#1a5030;border-color:var(--green)}
+.vopt.wrong{background:#4a1010;border-color:var(--red)}
+.vexp{margin-top:12px;padding:12px 18px;border-radius:12px;font-size:14px;line-height:1.5;display:none}
+.vexp.show{display:block}
+
+/* ── RESULTS ── */
+.res-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;gap:18px;padding:40px
+}
+.res-title{font-size:58px;font-weight:bold;color:var(--yellow);text-shadow:2px 2px 0 #000}
+.res-score{background:var(--card);border-radius:22px;padding:28px 56px;text-align:center}
+.res-num{font-size:68px;font-weight:bold}
+.res-sub{font-size:17px;color:var(--lgray);margin-top:4px}
+.res-stars{font-size:50px;letter-spacing:8px}
+.res-msg{font-size:26px;font-weight:bold}
+.res-btns{display:flex;gap:14px}
+.rbtn{
+  padding:15px 34px;border-radius:15px;border:none;
+  font-size:17px;font-weight:bold;cursor:pointer;transition:transform .1s
+}
+.rbtn:hover{transform:scale(1.05)}
+.rbtn.retry{background:var(--blue);color:#fff}
+.rbtn.home{background:var(--teal);color:#fff}
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<canvas id="pCanvas"></canvas>
+<div id="app">
+
+<!-- ═══════════════ MENU ═══════════════ -->
+<div class="screen active" id="s-menu">
+  <div class="menu-title">⚡ FísicaAventura ⚡</div>
+  <div class="menu-sub">El juego de física de Matilda 🌟</div>
+  <div class="menu-hint">Elige un tema para estudiar</div>
+  <div class="topic-grid">
+    <div class="topic-card" style="--tc:#3782F5" onclick="startTopic(0)">
+      <div class="topic-icon">⚖️</div>
+      <div class="topic-info">
+        <h2>Leyes de Newton</h2>
+        <p>Inercia · F=ma · Acción-Reacción</p>
+        <div class="star-row" id="stars-0">☆☆☆</div>
+      </div>
+      <button class="play-btn" style="background:#3782F5">▶ Jugar</button>
+    </div>
+    <div class="topic-card" style="--tc:#9B59E8" onclick="startTopic(1)">
+      <div class="topic-icon">➡️</div>
+      <div class="topic-info">
+        <h2>Vectores y Fuerzas</h2>
+        <p>Suma y resta de fuerzas · Fuerza Resultante</p>
+        <div class="star-row" id="stars-1">☆☆☆</div>
+      </div>
+      <button class="play-btn" style="background:#9B59E8">▶ Jugar</button>
+    </div>
+    <div class="topic-card" style="--tc:#00B9AF" onclick="startTopic(2)">
+      <div class="topic-icon">🪨</div>
+      <div class="topic-info">
+        <h2>Masa vs Peso</h2>
+        <p>P = m × g · Tierra vs Luna</p>
+        <div class="star-row" id="stars-2">☆☆☆</div>
+      </div>
+      <button class="play-btn" style="background:#00B9AF">▶ Jugar</button>
+    </div>
+    <div class="topic-card" style="--tc:#FF9137" onclick="startTopic(3)">
+      <div class="topic-icon">🚀</div>
+      <div class="topic-info">
+        <h2>Cinemática</h2>
+        <p>Velocidad · Rapidez · Aceleración</p>
+        <div class="star-row" id="stars-3">☆☆☆</div>
+      </div>
+      <button class="play-btn" style="background:#FF9137">▶ Jugar</button>
+    </div>
+  </div>
+  <div class="total-bar" id="total-stars">⭐ Estrellas totales: 0 / 12</div>
+</div>
+
+<!-- ═══════════════ LEARN ═══════════════ -->
+<div class="screen" id="s-learn">
+  <div class="learn-head">
+    <button class="back-btn" onclick="showScreen('s-menu')">← Menú</button>
+    <div class="learn-title" id="learn-title">Título</div>
+  </div>
+  <div class="slide-dots" id="slide-dots"></div>
+  <div class="slide-body" id="slide-body"></div>
+  <div class="learn-nav">
+    <button class="lbtn prev" id="btn-prev" onclick="prevSlide()">← Anterior</button>
+    <button class="lbtn go" id="btn-next" onclick="nextSlide()">Siguiente →</button>
+  </div>
+</div>
+
+<!-- ═══════════════ QUIZ ═══════════════ -->
+<div class="screen" id="s-quiz">
+  <div class="quiz-top">
+    <div style="display:flex;align-items:center;gap:14px">
+      <button class="back-btn" onclick="showScreen('s-menu')">← Menú</button>
+      <div class="quiz-label" id="quiz-label">Quiz</div>
+    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="q-card" id="q-text"></div>
+  <div class="opts" id="opts-wrap"></div>
+  <div class="expbox" id="expbox"></div>
+  <div class="cont-hint" id="cont-hint" style="display:none">Haz clic en cualquier lugar para continuar →</div>
+</div>
+
+<!-- ═══════════════ VEC GAME ═══════════════ -->
+<div class="screen" id="s-vec">
+  <div class="quiz-top">
+    <div style="display:flex;align-items:center;gap:14px">
+      <button class="back-btn" onclick="showScreen('s-menu')">← Menú</button>
+      <div class="quiz-label" id="vec-label">Vectores</div>
+    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="vec-prog" style="width:0%;background:#9B59E8"></div></div>
+  </div>
+  <div class="vgame">
+    <div class="vdiag">
+      <h3>¿Cuál es la Fuerza Resultante?</h3>
+      <div class="vscene" id="vscene"></div>
+    </div>
+    <div class="vopts" id="vopts"></div>
+    <div class="vexp" id="vexp"></div>
+    <div class="cont-hint" id="vec-hint" style="display:none">Haz clic para continuar →</div>
+  </div>
+</div>
+
+<!-- ═══════════════ RESULTS ═══════════════ -->
+<div class="screen" id="s-results">
+  <div class="res-wrap">
+    <div class="res-title">¡Resultados! 🏆</div>
+    <div class="res-score">
+      <div class="res-num" id="res-num">0 / 0</div>
+      <div class="res-sub">respuestas correctas</div>
+    </div>
+    <div class="res-stars" id="res-stars">☆☆☆</div>
+    <div class="res-msg" id="res-msg"></div>
+    <div class="res-btns">
+      <button class="rbtn retry" id="rbtn-retry">🔄 Intentar de nuevo</button>
+      <button class="rbtn home" onclick="showScreen('s-menu')">🏠 Menú Principal</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  BACKGROUND CANVAS
+// ═══════════════════════════════════════════════════════
+const bgC = document.getElementById('bgCanvas');
+const bgX = bgC.getContext('2d');
+const pC  = document.getElementById('pCanvas');
+const pX  = pC.getContext('2d');
+
+function resizeCanvases(){
+  bgC.width=pC.width=window.innerWidth;
+  bgC.height=pC.height=window.innerHeight;
+}
+resizeCanvases();
+window.addEventListener('resize',resizeCanvases);
+
+const STARS=Array.from({length:130},()=>({
+  x:Math.random()*window.innerWidth,
+  y:Math.random()*window.innerHeight,
+  r:Math.random()*1.5+0.3,
+  ph:Math.random()*Math.PI*2
+}));
+
+let t=0;
+function drawBg(){
+  bgX.fillStyle='#080A1C';
+  bgX.fillRect(0,0,bgC.width,bgC.height);
+  t+=0.02;
+  STARS.forEach(s=>{
+    const b=Math.round(140+80*Math.sin(t+s.ph));
+    bgX.fillStyle=`rgb(${b},${b},${b})`;
+    bgX.beginPath();bgX.arc(s.x,s.y,s.r,0,Math.PI*2);bgX.fill();
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════════════
+const COLORS=['#FFD700','#2ED57A','#00D7D7','#FF6499','#FF9137','#fff','#64C3FF'];
+let parts=[];
+function burst(x,y,n=40,col=null){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2;
+    const sp=Math.random()*8+2;
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,
+      life:Math.random()*50+30,max:80,sz:Math.random()*9+3,
+      col:col||COLORS[Math.floor(Math.random()*COLORS.length)]});
+  }
+}
+function drawParts(){
+  pX.clearRect(0,0,pC.width,pC.height);
+  parts=parts.filter(p=>p.life>0);
+  parts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.25;p.life--;
+    const a=p.life/p.max;
+    pX.globalAlpha=a;
+    pX.fillStyle=p.col;
+    pX.beginPath();pX.arc(p.x,p.y,p.sz*a,0,Math.PI*2);pX.fill();
+  });
+  pX.globalAlpha=1;
+}
+
+// Animation loop
+function loop(){
+  drawBg();drawParts();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+const state={
+  topic:0, slide:0, phase:'learn',
+  curQ:0, score:0, total:0,
+  stars:[0,0,0,0],
+  answered:false, vopts:null
+};
+
+// ═══════════════════════════════════════════════════════
+//  TOPIC DATA
+// ═══════════════════════════════════════════════════════
+const TOPIC_COLORS=['#3782F5','#9B59E8','#00B9AF','#FF9137'];
+const TOPIC_NAMES=['Leyes de Newton','Vectores y Fuerzas','Masa vs Peso','Cinemática'];
+
+// ── LEARN SLIDES ──────────────────────────────────────
+
+function makeLearnSlides(topicId){
+  if(topicId===0) return newtonSlides();
+  if(topicId===1) return vectorSlides();
+  if(topicId===2) return masaSlides();
+  if(topicId===3) return cinSlides();
+}
+
+function newtonSlides(){return[
+  {title:'1ª Ley: LA INERCIA',html:`
+    <div class="theory-card">
+      <h3>📚 Concepto</h3>
+      <div class="tline"><span class="tbullet">🔵</span><span>Un objeto en <strong>REPOSO</strong> permanece en reposo.</span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>Un objeto en <strong>MOVIMIENTO</strong> sigue moviéndose…</span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>…hasta que una <strong>FUERZA EXTERNA</strong> actúe sobre él.</span></div>
+      <div class="tip"><strong>💡 Ejemplo:</strong> Si lanzas un balón en el espacio (sin aire, sin gravedad), ¡seguiría volando para siempre! En la Tierra, la fricción lo detiene.</div>
+    </div>
+    <div class="anim-card">
+      <div class="anim-label">🎬 Bloque deslizándose (sin fricción → sigue para siempre)</div>
+      <div class="track-wrap">
+        <div class="track">
+          <div class="slider">m <span style="font-size:18px">📦</span></div>
+        </div>
+      </div>
+      <div class="vel-arrow">→ → → (velocidad constante)</div>
+      <div style="margin-top:20px;background:#1c2250;border-radius:12px;padding:14px;font-size:14px;color:#A0AFCD">
+        <strong style="color:#FFD700">Pregunta clave:</strong><br>
+        Si empujas un libro sobre hielo y lo sueltas, ¿qué lo detiene?<br>
+        <strong style="color:#2ED57A">→ ¡La fricción! Eso es una fuerza externa.</strong>
+      </div>
+    </div>`},
+  {title:'2ª Ley: F = m × a',html:`
+    <div class="theory-card">
+      <h3>📚 Concepto</h3>
+      <div class="tline"><span class="tbullet">🟢</span><span><strong>Fuerza = Masa × Aceleración</strong></span></div>
+      <div class="tline"><span class="tbullet">🟢</span><span>Unidad de Fuerza: <strong>Newton (N)</strong></span></div>
+      <div class="tline"><span class="tbullet">🟢</span><span>Mayor masa → necesitas <strong>más fuerza</strong> para la misma aceleración</span></div>
+      <div class="tline"><span class="tbullet">🟢</span><span>También: <strong>a = F / m</strong></span></div>
+      <div class="tip"><strong>💡 Ejemplo:</strong> Para acelerar un auto (1000 kg) necesitas mucha más fuerza que para acelerar una bicicleta (10 kg) a la misma velocidad.</div>
+    </div>
+    <div class="anim-card">
+      <div class="anim-label">🎬 La misma fuerza (10N), diferente masa → diferente aceleración</div>
+      <div class="fma-wrap">
+        <div class="fma-row">
+          <div class="fma-blk" style="width:44px;height:36px;background:#2ED57A;color:#000">2kg</div>
+          <div class="fma-ar" style="background:#2ED57A;color:#2ED57A;width:140px" title=""></div>
+          <div class="fma-res" style="color:#2ED57A">a = 5 m/s² ⚡⚡⚡</div>
+        </div>
+        <div style="text-align:center;font-size:13px;color:#A0AFCD">↑ Misma fuerza (10 N) ↓</div>
+        <div class="fma-row">
+          <div class="fma-blk" style="width:80px;height:52px;background:#E84141;color:#fff">10kg</div>
+          <div class="fma-ar" style="background:#E84141;color:#E84141;width:46px" title=""></div>
+          <div class="fma-res" style="color:#E84141">a = 1 m/s² ⚡</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;background:#1c2250;border-radius:10px;padding:12px;text-align:center">
+        <span style="font-size:22px;color:#FFD700;font-weight:bold">F = m × a</span><br>
+        <span style="font-size:13px;color:#A0AFCD">10N = 2kg×5m/s²   ✓   10N = 10kg×1m/s²   ✓</span>
+      </div>
+    </div>`},
+  {title:'3ª Ley: ACCIÓN ↔ REACCIÓN',html:`
+    <div class="theory-card">
+      <h3>📚 Concepto</h3>
+      <div class="tline"><span class="tbullet">🟠</span><span>Para cada <strong>ACCIÓN</strong> hay una <strong>REACCIÓN</strong> igual y opuesta.</span></div>
+      <div class="tline"><span class="tbullet">🟠</span><span>Las fuerzas <strong>siempre actúan en pares</strong>.</span></div>
+      <div class="tline"><span class="tbullet">🟠</span><span>Si empujas una pared, ¡la pared te empuja a ti con la <strong>misma fuerza</strong>!</span></div>
+      <div class="tip"><strong>💡 Más ejemplos:</strong><br>
+        🏊 Nadas empujando agua atrás → el agua te empuja adelante<br>
+        🚀 El cohete expulsa gases abajo → sube hacia arriba<br>
+        🤸 Saltas desde el suelo → empujas el suelo, el suelo te empuja a ti</div>
+    </div>
+    <div class="anim-card">
+      <div class="anim-label">🎬 Cohete: Acción y Reacción</div>
+      <div class="rocket-wrap">
+        <div class="reac">↑ REACCIÓN: cohete sube ↑</div>
+        <div class="arrows"><span style="color:#2ED57A;font-size:28px">↑</span></div>
+        <div class="rocket">🚀</div>
+        <div class="arrows"><span style="color:#E84141;font-size:28px">↓</span></div>
+        <div class="act">↓ ACCIÓN: expulsa gases ↓</div>
+        <div style="margin-top:14px;background:#1c2250;border-radius:10px;padding:10px;font-size:13px;color:#A0AFCD;text-align:center">
+          Acción = Reacción (misma magnitud, sentidos opuestos)
+        </div>
+      </div>
+    </div>`}
+]}
+
+function vectorSlides(){return[
+  {title:'Fuerzas como VECTORES',html:`
+    <div class="theory-card">
+      <h3>📚 Concepto</h3>
+      <div class="tline"><span class="tbullet">🔵</span><span>Las fuerzas son <strong>vectores</strong>: tienen magnitud, dirección y sentido.</span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>Fuerzas en el <strong>mismo sentido</strong> → se <strong>SUMAN</strong></span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>Fuerzas en <strong>sentidos opuestos</strong> → se <strong>RESTAN</strong></span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>La <strong>Fuerza Resultante (FR)</strong> indica hacia dónde se moverá el objeto.</span></div>
+      <div class="tip"><strong>⚠️ Ojo:</strong> Si una fuerza va → y otra va ←, no se suman, ¡se restan! El error más común en los ejercicios.</div>
+    </div>
+    <div class="anim-card">
+      <div class="vec-ex">
+        <h4>Caso 1: Mismo sentido → SUMAN</h4>
+        <div class="vec-demo">
+          <div class="vf r" style="width:60px;background:#3782F5;--acol:#3782F5">
+            <span class="vlbl" style="color:#3782F5">3N →</span>
+          </div>
+          <div class="vblk">📦</div>
+          <div class="vf r" style="width:100px;background:#2ED57A;--acol:#2ED57A">
+            <span class="vlbl" style="color:#2ED57A">7N →</span>
+          </div>
+        </div>
+        <div class="vres" style="color:#FFD700">FR = 3N + 7N = <strong>10N →</strong> (a la derecha)</div>
+      </div>
+      <div style="height:14px"></div>
+      <div class="vec-ex">
+        <h4>Caso 2: Sentidos opuestos → RESTAN</h4>
+        <div class="vec-demo">
+          <div class="vf l" style="width:50px;background:#FF6499;--acol:#FF6499">
+            <span class="vlbl" style="color:#FF6499">← 3N</span>
+          </div>
+          <div class="vblk">📦</div>
+          <div class="vf r" style="width:100px;background:#2ED57A;--acol:#2ED57A">
+            <span class="vlbl" style="color:#2ED57A">7N →</span>
+          </div>
+        </div>
+        <div class="vres" style="color:#FFD700">FR = 7N − 3N = <strong>4N →</strong> (a la derecha, mayor gana)</div>
+      </div>
+    </div>`},
+  {title:'Equilibrio y Fuerza Resultante',html:`
+    <div class="theory-card">
+      <h3>📚 ¿Qué pasa cuando FR = 0?</h3>
+      <div class="tline"><span class="tbullet">⚖️</span><span>Si las fuerzas opuestas son <strong>iguales</strong>, se cancelan.</span></div>
+      <div class="tline"><span class="tbullet">⚖️</span><span>FR = 0 → el objeto queda en <strong>EQUILIBRIO</strong>.</span></div>
+      <div class="tline"><span class="tbullet">⚖️</span><span>Equilibrio = <strong>el objeto NO se mueve</strong> (o sigue moviéndose a velocidad constante).</span></div>
+      <div class="tip">
+        <strong>💡 Regla práctica:</strong><br>
+        1. Si van al mismo lado: sumar los números.<br>
+        2. Si van en sentidos contrarios: restar. El resultado va en la dirección de la fuerza mayor.<br>
+        3. Si son iguales y opuestas: FR = 0 (equilibrio).
+      </div>
+    </div>
+    <div class="anim-card">
+      <div class="vec-ex">
+        <h4>Equilibrio (FR = 0)</h4>
+        <div class="vec-demo">
+          <div class="vf l" style="width:80px;background:#E84141;--acol:#E84141">
+            <span class="vlbl" style="color:#E84141">← 5N</span>
+          </div>
+          <div class="vblk">📦</div>
+          <div class="vf r" style="width:80px;background:#2ED57A;--acol:#2ED57A">
+            <span class="vlbl" style="color:#2ED57A">5N →</span>
+          </div>
+        </div>
+        <div class="vres" style="color:#00D7D7">FR = 5N − 5N = <strong>0N ⊙ EQUILIBRIO</strong></div>
+      </div>
+      <div style="height:14px"></div>
+      <div style="background:#1c2250;border-radius:12px;padding:14px;font-size:14px">
+        <strong style="color:#FFD700">Resumen:</strong>
+        <div style="color:#A0AFCD;margin-top:6px;line-height:1.7">
+          → + → = sumar, va hacia →<br>
+          ← + ← = sumar, va hacia ←<br>
+          → + ← = restar, va hacia el mayor<br>
+          → + ← (iguales) = 0, equilibrio ⚖️
+        </div>
+      </div>
+    </div>`}
+]}
+
+function masaSlides(){return[
+  {title:'¿Qué es la MASA?',html:`
+    <div class="theory-card">
+      <h3>📚 Concepto</h3>
+      <div class="tline"><span class="tbullet">🔵</span><span>La <strong>MASA</strong> es la cantidad de materia de un cuerpo.</span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>Se mide en <strong>KILOGRAMOS (kg)</strong>.</span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>¡La masa <strong>NO cambia</strong> según el planeta!</span></div>
+      <div class="tline"><span class="tbullet">🔵</span><span>Una roca de 10 kg tiene 10 kg en la Tierra, en la Luna y en Marte.</span></div>
+      <div class="tip"><strong>💡 Analogía:</strong> Imagina que la masa es como "cuánta cosa hay" en el objeto. Eso no cambia si viajas al espacio.</div>
+    </div>
+    <div class="anim-card">
+      <div class="anim-label">🎬 La masa es la misma en cualquier planeta</div>
+      <div class="planet-row">
+        <div class="pcard">
+          <div class="icon">🌍</div>
+          <div class="pname">Tierra</div>
+          <div class="pg">g = 10 m/s²</div>
+          <div class="pmass">Masa: 10 kg ✓</div>
+        </div>
+        <div class="pcard">
+          <div class="icon">🌕</div>
+          <div class="pname">Luna</div>
+          <div class="pg">g = 1.6 m/s²</div>
+          <div class="pmass">Masa: 10 kg ✓</div>
+        </div>
+        <div class="pcard">
+          <div class="icon">🔴</div>
+          <div class="pname">Marte</div>
+          <div class="pg">g = 3.7 m/s²</div>
+          <div class="pmass">Masa: 10 kg ✓</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;background:#1c2250;border-radius:10px;padding:12px;text-align:center;font-size:14px;color:#A0AFCD">
+        ¡La masa siempre es <strong style="color:#2ED57A">10 kg</strong> sin importar dónde estés!
+      </div>
+    </div>`},
+  {title:'¿Qué es el PESO?',html:`
+    <div class="theory-card">
+      <h3>📚 Concepto</h3>
+      <div class="tline"><span class="tbullet">🟠</span><span>El <strong>PESO</strong> es una <strong>FUERZA</strong> (atracción gravitacional).</span></div>
+      <div class="tline"><span class="tbullet">🟠</span><span>Se mide en <strong>NEWTONS (N)</strong>, no en kg.</span></div>
+      <div class="tline"><span class="tbullet">🟠</span><span>Fórmula: <strong>P = m × g</strong></span></div>
+      <div class="tline"><span class="tbullet">🟠</span><span>En la Tierra: <strong>g = 10 m/s²</strong></span></div>
+      <div class="tline"><span class="tbullet">🟠</span><span>¡El peso <strong>SÍ cambia</strong> según el planeta!</span></div>
+      <div class="tip"><strong>💡 Ejemplo:</strong> Roca de 10 kg:<br>
+        Tierra: P = 10×10 = <strong style="color:#E84141">100 N</strong><br>
+        Luna: P = 10×1.6 = <strong style="color:#FF9137">16 N</strong></div>
+    </div>
+    <div class="anim-card">
+      <div class="anim-label">🎬 El peso cambia según la gravedad del planeta</div>
+      <div class="planet-row">
+        <div class="pcard">
+          <div class="icon">🌍</div>
+          <div class="pname">Tierra</div>
+          <div class="pg">g = 10 m/s²</div>
+          <div class="pmass">Masa: 10 kg</div>
+          <div class="pweight" style="color:#E84141">Peso: 100 N</div>
+        </div>
+        <div class="pcard">
+          <div class="icon">🌕</div>
+          <div class="pname">Luna</div>
+          <div class="pg">g = 1.6 m/s²</div>
+          <div class="pmass">Masa: 10 kg</div>
+          <div class="pweight" style="color:#FF9137">Peso: 16 N</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;background:#1c2250;border-radius:10px;padding:14px;text-align:center">
+        <div style="font-size:26px;color:#FFD700;font-weight:bold;margin-bottom:6px">P = m × g</div>
+        <div style="font-size:13px;color:#A0AFCD">También puedes despejar: m = P ÷ g</div>
+      </div>
+    </div>`},
+  {title:'Masa vs Peso — Resumen',html:`
+    <div class="theory-card">
+      <h3>📚 Diferencias clave</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+        <div style="background:#1a3060;border-radius:12px;padding:14px">
+          <div style="font-size:18px;font-weight:bold;color:#64C3FF;margin-bottom:8px">⚖️ MASA</div>
+          <div style="font-size:14px;color:#A0AFCD;line-height:1.6">
+            • Cantidad de materia<br>
+            • Unidad: <strong style="color:#fff">kg</strong><br>
+            • NO cambia con el planeta<br>
+            • No es una fuerza
+          </div>
+        </div>
+        <div style="background:#3a1a20;border-radius:12px;padding:14px">
+          <div style="font-size:18px;font-weight:bold;color:#FF9137;margin-bottom:8px">🏋️ PESO</div>
+          <div style="font-size:14px;color:#A0AFCD;line-height:1.6">
+            • Fuerza gravitacional<br>
+            • Unidad: <strong style="color:#fff">N (Newton)</strong><br>
+            • SÍ cambia con el planeta<br>
+            • P = m × g
+          </div>
+        </div>
+      </div>
+      <div class="tip" style="margin-top:12px"><strong>💡 Error frecuente:</strong> Decir "peso 60 kg" es incorrecto en física. Lo correcto es "tengo una masa de 60 kg" o "mi peso es 600 N".</div>
+    </div>
+    <div class="anim-card">
+      <div style="text-align:center;font-size:36px;font-weight:bold;color:#FFD700;margin-bottom:16px">P = m × g</div>
+      <div style="background:#1c2250;border-radius:14px;padding:16px;width:100%">
+        <div style="font-size:15px;font-weight:bold;color:#64C3FF;margin-bottom:10px">📝 Ejercicio resuelto:</div>
+        <div style="font-size:14px;color:#A0AFCD;line-height:2">
+          Una roca tiene masa de <strong style="color:#fff">10 kg</strong><br>
+          g en la Tierra = <strong style="color:#fff">10 m/s²</strong><br>
+          <strong style="color:#2ED57A">P = 10 kg × 10 m/s² = 100 N</strong><br><br>
+          Si el peso es 300 N y g=10, ¿cuál es la masa?<br>
+          <strong style="color:#2ED57A">m = P ÷ g = 300 ÷ 10 = 30 kg</strong>
+        </div>
+      </div>
+    </div>`}
+]}
+
+function cinSlides(){return[
+  {title:'Conceptos de Cinemática',html:`
+    <div class="theory-card">
+      <h3>📚 Magnitudes del movimiento</h3>
+      <div class="tline"><span class="tbullet">🚀</span><span><strong>Rapidez:</strong> solo el número con su unidad. Ej: 80 km/h</span></div>
+      <div class="tline"><span class="tbullet">🧭</span><span><strong>Velocidad:</strong> número + dirección. Ej: 80 km/h hacia el norte</span></div>
+      <div class="tline"><span class="tbullet">⚡</span><span><strong>Aceleración:</strong> cambio de velocidad. Unidad: m/s²</span></div>
+      <div class="tline"><span class="tbullet">💪</span><span><strong>Fuerza:</strong> empuje o jalón. Unidad: Newton (N)</span></div>
+      <div class="tip"><strong>💡 Clave Velocidad vs Rapidez:</strong><br>
+        Rapidez = ¿Qué tan rápido? (solo número)<br>
+        Velocidad = ¿Qué tan rápido + hacia dónde?</div>
+    </div>
+    <div class="anim-card">
+      <div class="cingrid">
+        <div class="cincard">
+          <div class="cinicon">💪</div>
+          <div class="cininfo">
+            <h4>FUERZA (F)</h4>
+            <p>Unidad: Newton (N)</p>
+            <div class="cinform">F = m × a</div>
+          </div>
+        </div>
+        <div class="cincard">
+          <div class="cinicon">⚡</div>
+          <div class="cininfo">
+            <h4>ACELERACIÓN (a)</h4>
+            <p>Unidad: m/s²</p>
+            <div class="cinform">a = F / m</div>
+          </div>
+        </div>
+        <div class="cincard">
+          <div class="cinicon">🏎️</div>
+          <div class="cininfo">
+            <h4>RAPIDEZ</h4>
+            <p>Solo el número<br>"80 km/h"</p>
+            <div class="cinform">sin dirección</div>
+          </div>
+        </div>
+        <div class="cincard">
+          <div class="cinicon">🧭</div>
+          <div class="cininfo">
+            <h4>VELOCIDAD</h4>
+            <p>Número + dirección<br>"80 km/h Norte"</p>
+            <div class="cinform">con dirección</div>
+          </div>
+        </div>
+      </div>
+    </div>`},
+  {title:'Fórmulas y Unidades',html:`
+    <div class="theory-card">
+      <h3>📚 Las fórmulas que debes saber</h3>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+        <div style="background:#1c2250;border-radius:12px;padding:14px;display:flex;align-items:center;gap:14px">
+          <span style="font-size:28px">💪</span>
+          <div>
+            <div style="font-size:20px;font-weight:bold;color:#FFD700">F = m × a</div>
+            <div style="font-size:13px;color:#A0AFCD">Fuerza = Masa × Aceleración  |  Unidad: N</div>
+          </div>
+        </div>
+        <div style="background:#1c2250;border-radius:12px;padding:14px;display:flex;align-items:center;gap:14px">
+          <span style="font-size:28px">⚡</span>
+          <div>
+            <div style="font-size:20px;font-weight:bold;color:#2ED57A">a = F / m</div>
+            <div style="font-size:13px;color:#A0AFCD">Aceleración = Fuerza / Masa  |  Unidad: m/s²</div>
+          </div>
+        </div>
+        <div style="background:#1c2250;border-radius:12px;padding:14px;display:flex;align-items:center;gap:14px">
+          <span style="font-size:28px">🪨</span>
+          <div>
+            <div style="font-size:20px;font-weight:bold;color:#FF9137">P = m × g</div>
+            <div style="font-size:13px;color:#A0AFCD">Peso = Masa × Gravedad  |  g=10 m/s²  |  Unidad: N</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="anim-card">
+      <div style="width:100%">
+        <div style="text-align:center;font-size:16px;font-weight:bold;color:#A0AFCD;margin-bottom:14px">📝 Ejemplos resueltos</div>
+        <div style="background:#1c2250;border-radius:12px;padding:14px;font-size:14px;line-height:2;color:#A0AFCD">
+          <strong style="color:#FFD700">F = m × a:</strong><br>
+          m=5 kg, a=3 m/s² → F = 5×3 = <strong style="color:#2ED57A">15 N</strong><br><br>
+          <strong style="color:#FFD700">a = F / m:</strong><br>
+          F=20 N, m=4 kg → a = 20÷4 = <strong style="color:#2ED57A">5 m/s²</strong><br><br>
+          <strong style="color:#FFD700">Velocidad vs Rapidez:</strong><br>
+          "100 km/h" = <strong style="color:#FF9137">rapidez</strong><br>
+          "100 km/h hacia el sur" = <strong style="color:#64C3FF">velocidad</strong>
+        </div>
+      </div>
+    </div>`}
+]}
+
+// ── QUIZ DATA ──────────────────────────────────────────
+
+const QUIZZES=[
+  [ // NEWTON
+    {q:'¿Cuál situación describe la 1ª Ley de Newton (Inercia)?',
+     opts:['Una pelota cae por la gravedad',
+           'Un patinador sigue deslizándose tras dejar de empujarse',
+           'Un cohete vuela expulsando gases',
+           'Levantar una roca pesada requiere más fuerza'],
+     ans:1,exp:'La inercia: el patinador sigue moviéndose porque no hay fuerza externa que lo detenga (o hay muy poca fricción).'},
+    {q:'F = m × a. Si F = 30 N y m = 6 kg, ¿cuál es la aceleración?',
+     opts:['180 m/s²','5 m/s²','24 m/s²','0.2 m/s²'],
+     ans:1,exp:'a = F ÷ m = 30 N ÷ 6 kg = 5 m/s²'},
+    {q:'¿Cuántos Newtons necesitas para acelerar una masa de 8 kg a 4 m/s²?',
+     opts:['2 N','12 N','32 N','48 N'],
+     ans:2,exp:'F = m × a = 8 kg × 4 m/s² = 32 N'},
+    {q:'Cuando nadas, empujas el agua hacia atrás. Según la 3ª Ley, el agua te empuja…',
+     opts:['hacia abajo','hacia atrás también','hacia adelante','no te empuja'],
+     ans:2,exp:'Acción y Reacción: empujas agua hacia atrás → el agua te empuja hacia adelante. ¡Por eso puedes nadar!'},
+    {q:'¿En qué unidad se mide la Fuerza?',
+     opts:['Kilogramos (kg)','Metros/segundo (m/s)','Newtons (N)','Joules (J)'],
+     ans:2,exp:'La Fuerza se mide en Newtons (N), en honor a Isaac Newton.'},
+  ],
+  null, // vectors uses special game
+  [ // MASA/PESO
+    {q:'¿En qué unidad se mide la MASA?',
+     opts:['Newtons (N)','Kilogramos (kg)','Metros (m)','Joules (J)'],
+     ans:1,exp:'La masa se mide en KILOGRAMOS (kg). El peso se mide en Newtons (N).'},
+    {q:'Una mochila tiene masa de 5 kg. ¿Cuánto pesa en la Tierra? (g = 10 m/s²)',
+     opts:['5 N','2 N','50 N','500 N'],
+     ans:2,exp:'P = m × g = 5 kg × 10 m/s² = 50 N'},
+    {q:'Un astronauta pesa 800 N en la Tierra (g=10). ¿Cuál es su MASA en la Luna?',
+     opts:['133 kg','80 kg','800 kg','Cambia según el planeta'],
+     ans:1,exp:'La masa NUNCA cambia: m = P ÷ g = 800 N ÷ 10 = 80 kg (igual en la Tierra y la Luna).'},
+    {q:'¿Cuál es la diferencia principal entre MASA y PESO?',
+     opts:['Son lo mismo, solo diferente nombre',
+           'La masa cambia según el planeta; el peso no',
+           'Masa = cantidad de materia (kg); Peso = fuerza gravitacional (N)',
+           'El peso se mide en kg, la masa en N'],
+     ans:2,exp:'Masa es cantidad de materia (kg). Peso es la fuerza gravitacional que actúa sobre esa masa (N = kg × m/s²).'},
+    {q:'Una piedra pesa 300 N en la Tierra (g=10 m/s²). ¿Cuál es su masa?',
+     opts:['3000 kg','300 kg','30 kg','3 kg'],
+     ans:2,exp:'m = P ÷ g = 300 N ÷ 10 m/s² = 30 kg'},
+  ],
+  [ // CINEMÁTICA
+    {q:'¿Cuál es la diferencia entre VELOCIDAD y RAPIDEZ?',
+     opts:['Son exactamente lo mismo',
+           'La rapidez incluye dirección; la velocidad no',
+           'La velocidad incluye dirección; la rapidez es solo el número con su unidad',
+           'La rapidez se mide en km y la velocidad en m/s'],
+     ans:2,exp:'Rapidez: solo el número (ej: "80 km/h"). Velocidad: número + dirección (ej: "80 km/h hacia el norte").'},
+    {q:'¿Cuál es la fórmula para calcular la Aceleración?',
+     opts:['a = m × F','a = F / m','a = m / F','a = F + m'],
+     ans:1,exp:'De F = m×a, despejando a: a = F ÷ m. Unidad de aceleración: m/s²'},
+    {q:'¿En qué unidad se mide la Aceleración?',
+     opts:['m/s','km/h','m/s²','kg·m/s'],
+     ans:2,exp:'La aceleración se mide en metros por segundo al cuadrado (m/s²).'},
+    {q:'Un auto va a "90 km/h hacia el sur". ¿Qué magnitud describe?',
+     opts:['Solo la rapidez','La velocidad (tiene dirección)','La aceleración','El peso'],
+     ans:1,exp:'"90 km/h hacia el sur" incluye magnitud Y dirección → es VELOCIDAD.'},
+    {q:'¿Cuántos Newtons actúan sobre una masa de 6 kg con aceleración de 5 m/s²?',
+     opts:['1.2 N','11 N','30 N','65 N'],
+     ans:2,exp:'F = m × a = 6 kg × 5 m/s² = 30 N'},
+  ],
+];
+
+// ── VECTOR GAME DATA ──────────────────────────────────
+const VEC_PROBS=[
+  {f1:5,d1:'r',f2:3,d2:'r',ans:8,adir:'r'},
+  {f1:7,d1:'r',f2:3,d2:'l',ans:4,adir:'r'},
+  {f1:4,d1:'l',f2:4,d2:'r',ans:0,adir:'eq'},
+  {f1:10,d1:'r',f2:6,d2:'l',ans:4,adir:'r'},
+  {f1:3,d1:'l',f2:7,d2:'l',ans:10,adir:'l'},
+  {f1:8,d1:'l',f2:5,d2:'r',ans:3,adir:'l'},
+];
+
+function makeVecOpts(prob){
+  const {f1,f2,ans,adir}=prob;
+  const correct={v:ans,d:adir};
+  let pool=[correct,
+    {v:f1+f2,d:'r'},{v:f1+f2,d:'l'},
+    {v:Math.abs(f1-f2)+2,d:'r'},{v:Math.abs(f1-f2)+2,d:'l'},
+    {v:ans,d:adir==='r'?'l':'r'},{v:f1,d:prob.d1},{v:f2,d:prob.d2}];
+  const seen=new Set([JSON.stringify(correct)]);
+  const opts=[correct];
+  for(const c of pool){
+    const k=JSON.stringify(c);
+    if(!seen.has(k)){seen.add(k);opts.push(c);}
+    if(opts.length===4) break;
+  }
+  while(opts.length<4) opts.push({v:Math.floor(Math.random()*12)+1,d:'r'});
+  return shuffle(opts.slice(0,4));
+}
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function optLabel(o){
+  if(o.v===0||o.d==='eq') return '⊙  FR = 0 N  (Equilibrio)';
+  const sym=o.d==='r'?'→':'←';
+  return `${sym}  FR = ${o.v} N  ${sym}`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SCREEN CONTROLLER
+// ═══════════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateStarDisplay(){
+  for(let i=0;i<4;i++){
+    const s=state.stars[i];
+    document.getElementById('stars-'+i).textContent=
+      (s>=1?'⭐':'☆')+(s>=2?'⭐':'☆')+(s>=3?'⭐':'☆');
+  }
+  const total=state.stars.reduce((a,b)=>a+b,0);
+  document.getElementById('total-stars').textContent=`⭐ Estrellas totales: ${total} / 12`;
+}
+
+// ── START TOPIC ────────────────────────────────────────
+function startTopic(topicId){
+  state.topic=topicId;
+  state.slide=0;
+  state.score=0;
+  state.total=0;
+  state.curQ=0;
+  state.answered=false;
+  state.vopts=null;
+  renderLearn();
+  showScreen('s-learn');
+}
+
+// ── LEARN ──────────────────────────────────────────────
+function renderLearn(){
+  const slides=makeLearnSlides(state.topic);
+  const sl=state.slide;
+  const col=TOPIC_COLORS[state.topic];
+
+  document.getElementById('learn-title').textContent=slides[sl].title;
+  document.getElementById('slide-body').innerHTML=slides[sl].html;
+
+  // set --tc color
+  document.getElementById('s-learn').style.setProperty('--tc',col);
+
+  // dots
+  const dotsEl=document.getElementById('slide-dots');
+  dotsEl.innerHTML='';
+  slides.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='dot'+(i===sl?' on':'');
+    dotsEl.appendChild(d);
+  });
+
+  // buttons
+  const prevBtn=document.getElementById('btn-prev');
+  const nextBtn=document.getElementById('btn-next');
+  prevBtn.style.visibility=sl>0?'visible':'hidden';
+  const isLast=sl===slides.length-1;
+  nextBtn.className='lbtn '+(isLast?'quiz':'go');
+  nextBtn.textContent=isLast?'¡Al Quiz! 🎯':'Siguiente →';
+}
+
+function prevSlide(){
+  if(state.slide>0){state.slide--;renderLearn();}
+}
+
+function nextSlide(){
+  const slides=makeLearnSlides(state.topic);
+  if(state.slide<slides.length-1){
+    state.slide++;renderLearn();
+  } else {
+    startQuiz();
+  }
+}
+
+// ── QUIZ ───────────────────────────────────────────────
+function startQuiz(){
+  state.curQ=0;state.score=0;state.total=0;state.answered=false;
+  if(state.topic===1){startVecGame();return;}
+  renderQuestion();
+  showScreen('s-quiz');
+}
+
+function renderQuestion(){
+  const qs=QUIZZES[state.topic];
+  const qi=state.curQ;
+  const col=TOPIC_COLORS[state.topic];
+
+  if(qi>=qs.length){showResults();return;}
+
+  const q=qs[qi];
+  document.getElementById('s-quiz').style.setProperty('--tc',col);
+  document.getElementById('quiz-label').textContent=
+    `Quiz: ${TOPIC_NAMES[state.topic]}  (${qi+1}/${qs.length})`;
+  document.getElementById('prog-fill').style.width=(qi/qs.length*100)+'%';
+  document.getElementById('prog-fill').style.background=col;
+  document.getElementById('q-text').textContent=q.q;
+
+  const optsWrap=document.getElementById('opts-wrap');
+  optsWrap.innerHTML='';
+  q.opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='opt';
+    btn.innerHTML=`<div class="oletter">${'ABCD'[i]}</div><span>${opt}</span>`;
+    btn.onclick=()=>answerQ(i);
+    optsWrap.appendChild(btn);
+  });
+
+  const expbox=document.getElementById('expbox');
+  expbox.className='expbox';expbox.textContent='';
+  document.getElementById('cont-hint').style.display='none';
+  state.answered=false;
+}
+
+function answerQ(i){
+  if(state.answered) return;
+  state.answered=true;
+  const qs=QUIZZES[state.topic];
+  const q=qs[state.curQ];
+  const correct=i===q.ans;
+  state.total++;
+  if(correct) state.score++;
+
+  const btns=document.querySelectorAll('#opts-wrap .opt');
+  btns.forEach((b,idx)=>{b.disabled=true;});
+  btns[q.ans].classList.add('correct');
+  if(!correct) btns[i].classList.add('wrong');
+
+  const expbox=document.getElementById('expbox');
+  expbox.className='expbox show '+(correct?'ok':'bad');
+  expbox.textContent=(correct?'✓ ¡Correcto! ':'✗ Incorrecto. ')+q.exp;
+
+  document.getElementById('cont-hint').style.display='block';
+  showFeedback(correct);
+
+  if(correct) burst(window.innerWidth/2, window.innerHeight*0.15, 50, '#2ED57A');
+  else burst(window.innerWidth/2, window.innerHeight*0.15, 25, '#E84141');
+}
+
+document.getElementById('s-quiz').addEventListener('click',e=>{
+  if(!state.answered) return;
+  if(e.target.classList.contains('opt')||e.target.classList.contains('oletter')) return;
+  state.curQ++;
+  renderQuestion();
+});
+
+// ── VECTOR GAME ────────────────────────────────────────
+function startVecGame(){
+  state.curQ=0;state.score=0;state.total=0;state.answered=false;state.vopts=null;
+  renderVecProblem();
+  showScreen('s-vec');
+}
+
+function renderVecProblem(){
+  const qi=state.curQ;
+  const n=VEC_PROBS.length;
+  if(qi>=n){showResults();return;}
+
+  const prob=VEC_PROBS[qi];
+  const opts=makeVecOpts(prob);
+  state.vopts=opts;
+  state.answered=false;
+
+  document.getElementById('vec-label').textContent=`¡Calcula la Fuerza Resultante!  (${qi+1}/${n})`;
+  document.getElementById('vec-prog').style.width=(qi/n*100)+'%';
+
+  // Draw force scene
+  const scene=document.getElementById('vscene');
+  const PX=14; // px per Newton
+  const f1px=prob.f1*PX, f2px=prob.f2*PX;
+
+  scene.innerHTML=`
+    ${prob.d1==='l'?`
+      <div class="vf l" style="width:${f1px}px;background:#2ED57A;--acol:#2ED57A">
+        <span class="vfl" style="color:#2ED57A">← ${prob.f1}N</span>
+      </div>`:''}
+    <div class="vbox">📦</div>
+    ${prob.d1==='r'?`
+      <div class="vf r" style="width:${f1px}px;background:#2ED57A;--acol:#2ED57A">
+        <span class="vfl" style="color:#2ED57A">${prob.f1}N →</span>
+      </div>`:''}
+  `;
+  // Hmm, need to show both forces. Let me redo this:
+  scene.innerHTML='';
+  // Left side: force going left
+  const leftForces=[];
+  const rightForces=[];
+  if(prob.d1==='l') leftForces.push({v:prob.f1,col:'#2ED57A'});
+  if(prob.d2==='l') leftForces.push({v:prob.f2,col:'#FF9137'});
+  if(prob.d1==='r') rightForces.push({v:prob.f1,col:'#2ED57A'});
+  if(prob.d2==='r') rightForces.push({v:prob.f2,col:'#FF9137'});
+
+  const leftDiv=document.createElement('div');
+  leftDiv.style.cssText='display:flex;align-items:center;gap:0';
+  leftForces.forEach(f=>{
+    const d=document.createElement('div');
+    d.className='vf l';
+    d.style.cssText=`width:${f.v*PX}px;background:${f.col};--acol:${f.col}`;
+    d.innerHTML=`<span class="vfl" style="color:${f.col}">← ${f.v}N</span>`;
+    leftDiv.appendChild(d);
+  });
+  if(leftForces.length===0){leftDiv.style.width='20px';}
+
+  const block=document.createElement('div');
+  block.className='vbox';block.textContent='📦';
+
+  const rightDiv=document.createElement('div');
+  rightDiv.style.cssText='display:flex;align-items:center;gap:0';
+  rightForces.forEach(f=>{
+    const d=document.createElement('div');
+    d.className='vf r';
+    d.style.cssText=`width:${f.v*PX}px;background:${f.col};--acol:${f.col}`;
+    d.innerHTML=`<span class="vfl" style="color:${f.col}">${f.v}N →</span>`;
+    rightDiv.appendChild(d);
+  });
+  if(rightForces.length===0){rightDiv.style.width='20px';}
+
+  scene.appendChild(leftDiv);scene.appendChild(block);scene.appendChild(rightDiv);
+
+  // Options
+  const vopts=document.getElementById('vopts');
+  vopts.innerHTML='';
+  opts.forEach((opt,i)=>{
+    const btn=document.createElement('button');
+    btn.className='vopt';
+    btn.textContent=optLabel(opt);
+    btn.onclick=()=>answerVec(i);
+    vopts.appendChild(btn);
+  });
+
+  document.getElementById('vexp').className='vexp';
+  document.getElementById('vexp').textContent='';
+  document.getElementById('vec-hint').style.display='none';
+}
+
+function answerVec(i){
+  if(state.answered) return;
+  state.answered=true;
+  const prob=VEC_PROBS[state.curQ];
+  const opt=state.vopts[i];
+  const ok=(opt.v===prob.ans&&opt.d===prob.adir)||(prob.ans===0&&opt.v===0);
+  state.total++;
+  if(ok) state.score++;
+
+  const btns=document.querySelectorAll('#vopts .vopt');
+  btns.forEach((b,idx)=>{
+    b.disabled=true;
+    const o=state.vopts[idx];
+    const isC=(o.v===prob.ans&&o.d===prob.adir)||(prob.ans===0&&o.v===0);
+    if(isC) b.classList.add('correct');
+    else if(idx===i&&!isC) b.classList.add('wrong');
+  });
+
+  // Explanation
+  const {f1,f2,d1,d2}=prob;
+  let exp='';
+  if(d1===d2) exp=`Mismo sentido → ${f1}N + ${f2}N = ${prob.ans}N`;
+  else if(prob.ans===0) exp=`Fuerzas iguales y opuestas → ${f1}N − ${f2}N = 0N (Equilibrio ⚖️)`;
+  else{const big=Math.max(f1,f2),sml=Math.min(f1,f2);
+    const lado=prob.adir==='r'?'derecha':'izquierda';
+    exp=`Sentidos opuestos → ${big}N − ${sml}N = ${prob.ans}N hacia la ${lado}`;}
+
+  const vexp=document.getElementById('vexp');
+  vexp.className='vexp show';
+  vexp.style.background=ok?'#1a5030':'#4a1010';
+  vexp.style.border=`1px solid ${ok?'#2ED57A':'#E84141'}`;
+  vexp.textContent=(ok?'✓ ¡Correcto! ':'✗ Incorrecto. ')+exp;
+
+  document.getElementById('vec-hint').style.display='block';
+  showFeedback(ok);
+  if(ok) burst(window.innerWidth/2, 100, 50, '#9B59E8');
+  else burst(window.innerWidth/2, 100, 25, '#E84141');
+}
+
+document.getElementById('s-vec').addEventListener('click',e=>{
+  if(!state.answered) return;
+  if(e.target.classList.contains('vopt')) return;
+  state.curQ++;
+  renderVecProblem();
+});
+
+// ── RESULTS ────────────────────────────────────────────
+function showResults(){
+  const pct=state.score/Math.max(state.total,1);
+  const stars=pct>=0.9?3:pct>=0.7?2:pct>=0.4?1:0;
+  state.stars[state.topic]=Math.max(state.stars[state.topic],stars);
+  updateStarDisplay();
+
+  document.getElementById('res-num').textContent=`${state.score} / ${state.total}`;
+  document.getElementById('res-num').style.color=stars>=2?'#2ED57A':stars===1?'#FF9137':'#E84141';
+  document.getElementById('res-stars').textContent=(stars>=1?'⭐':'☆')+(stars>=2?'⭐':'☆')+(stars>=3?'⭐':'☆');
+  const msgs={0:'¡Sigue practicando! 💪',1:'¡Bien hecho! 😊',2:'¡Muy bien! ⭐',3:'¡PERFECTO! 🎉🌟🎉'};
+  const msgCol={0:'#E84141',1:'#FF9137',2:'#2ED57A',3:'#FFD700'};
+  document.getElementById('res-msg').textContent=msgs[stars];
+  document.getElementById('res-msg').style.color=msgCol[stars];
+
+  document.getElementById('rbtn-retry').onclick=()=>startQuiz();
+
+  if(stars>=2){
+    setTimeout(()=>{
+      for(let i=0;i<5;i++) setTimeout(()=>{
+        burst(Math.random()*window.innerWidth, Math.random()*window.innerHeight*0.5, 30);
+      },i*300);
+    },200);
+  }
+  showScreen('s-results');
+}
+
+// ── FEEDBACK FLASH ─────────────────────────────────────
+function showFeedback(ok){
+  const el=document.createElement('div');
+  el.className='fb-flash '+(ok?'ok':'bad');
+  el.textContent=ok?'¡Correcto! ✓':'¡Incorrecto! ✗';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),2000);
+}
+
+// ── INIT ───────────────────────────────────────────────
+updateStarDisplay();
+</script>
+</body>
+</html>
